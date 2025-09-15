@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+<!-- 사용자 css 추가-->
+<th:block layout:fragment="css">
+    <style>
+<!--        .carousel-inner > .item{-->
+<!--            height : 350px;-->
+<!--        }-->
+<!--        .margin{-->
+<!--            margin-bottom : 30px;-->
+<!--        }-->
+<!--        .banner{-->
+<!--            height : 300px;-->
+<!--            position : absolute; top:0; left:0;-->
+<!--            width : 100%;-->
+<!--            height : 100%;-->
+<!--        }-->
+<!--        .card-text{-->
+<!--            text-overflow : ellipsis;-->
+<!--            white-space : nowrap;-->
+<!--            overflow : hidden;-->
+<!--        }-->
+<!--        a:hover{-->
+<!--            text-decoration:none;-->
+<!--        }-->
+<!--        .center{-->
+<!--            text-align:center;-->
+<!--        }-->
+        .carousel-inner > .item {
+            height : 350px;
+        }
+        .margin{
+            margin-bottom : 30px;
+        }
+        .banner{
+            height : 300px;
+            position : absolute; top:0; left:0;
+            width : 100%;
+            height : 100%;
+        }
+        .card-text{
+            text-overflow : ellipsis;
+            white-space : nowrap;
+            overflow : hidden;
+        }
+        a:hover{
+            text-decoration : none;
+        }
+        .center{
+            text-align:center;
+        }
+
+        .custom-product-list-wrap {
+            clear: both;
+            display: block;
+            margin-top: 40px;
+            padding-left: 0;
+            padding-right: 0;
+            padding-bottom: 40px;
+        }
+        .custom-product-row {
+            row-gap: 16px;
+            column-gap: 16px;
+        }
+        .custom-product-card {
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            overflow: hidden;
+            height: 100%;
+            transition: transform 0.2s ease;
+            border: 1px solid #f0f0f0;
+        }
+        .custom-product-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .custom-product-img {
+            height: 200px;
+            object-fit: cover;
+            border-bottom: 1px solid #eee;
+        }
+        /* 상품 리스트 5열 그리드 */
+        .custom-product-list-wrap .row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+        }
+        .col-3, .col-2 {
+            width: 100% !important;
+            max-width: none !important;
+            flex: none !important;
+        }
+        .carousel-control-prev,
+        .carousel-control-next,
+        .carousel-control-prev:focus,
+        .carousel-control-next:focus,
+        .carousel-control-prev:active,
+        .carousel-control-next:active {
+          background: none !important;
+          border: none !important;
+          box-shadow: none !important;
+          outline: none !important;
+        }
+        .carousel-control-prev-icon,
+        .carousel-control-next-icon {
+          background-image: none !important;
+        }
+        /* 페이지네이션 테두리 제거 및 색상 변경 */
+        .pagination .page-link {
+            border: none !important;
+            box-shadow: none !important;
+            color: #222 !important;
+            background: none !important;
+        }
+        .pagination .page-item.active .page-link {
+            background: #222 !important;
+            color: #fff !important;
+            border: none !important;
+        }
+    </style>
+</th:block>
+
+<div layout:fragment="content">
+    <div id="mainBannerCarousel" class="carousel slide margin" data-bs-ride="carousel" data-bs-interval="3000">
+        <div class="carousel-inner">
+            <div class="carousel-item active">
+                <div class="main-banner-img-wrap"
+                     style="width:1500px; height:600px; margin:32px auto 40px auto; background:#fff; border-radius:0; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; padding:0;">
+                    <img src="/images/item/banner_shoes_trend.jpg"
+                         alt="SHOES TREND NOW"
+                         style="width:100%; height:100%; object-fit:cover; display:block;">
+                    <button class="carousel-control-prev" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="prev"
+                            style="position:absolute; top:50%; left:0; width:48px; height:48px; z-index:10; background:none; border:none; transform:translateY(-50%); display:flex; align-items:center; justify-content:center;">
+                        <span style="font-size:32px; color:#fff;">&#60;</span>
+                        <span class="visually-hidden">이전</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="next"
+                            style="position:absolute; top:50%; right:0; width:48px; height:48px; z-index:10; background:none; border:none; transform:translateY(-50%); display:flex; align-items:center; justify-content:center;">
+                        <span style="font-size:32px; color:#fff;">&#62;</span>
+                        <span class="visually-hidden">다음</span>
+                    </button>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="main-banner-img-wrap"
+                     style="width:1500px; height:600px; margin:32px auto 40px auto; background:#fff; border-radius:0; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; padding:0;">
+                    <img src="/images/item/summer_shoes.jpg"
+                         alt="SUMMER SHOES"
+                         style="width:100%; height:100%; object-fit:cover; display:block;">
+                    <button class="carousel-control-prev" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="prev"
+                            style="position:absolute; top:50%; left:0; width:48px; height:48px; z-index:10; background:rgba(255,255,255,0.5); border:none; transform:translateY(-50%); display:flex; align-items:center; justify-content:center;">
+                        <span style="font-size:32px; color:#fff;">&#60;</span>
+                        <span class="visually-hidden">이전</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="next"
+                            style="position:absolute; top:50%; right:0; width:48px; height:48px; z-index:10; background:rgba(255,255,255,0.5); border:none; transform:translateY(-50%); display:flex; align-items:center; justify-content:center;">
+                        <span style="font-size:32px; color:#fff;">&#62;</span>
+                        <span class="visually-hidden">다음</span>
+                    </button>
+                </div>
+            </div>
+            <div class="carousel-item">
+                <div class="main-banner-img-wrap"
+                     style="width:1500px; height:600px; margin:32px auto 40px auto; background:#fff; border-radius:0; overflow:hidden; display:flex; align-items:center; justify-content:center; position:relative; padding:0;">
+                    <img src="/images/item/running_shoes.jpg"
+                         alt="RUNNING SHOES"
+                         style="width:100%; height:100%; object-fit:cover; display:block;">
+                    <button class="carousel-control-prev" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="prev"
+                            style="position:absolute; top:50%; left:0; width:48px; height:48px; z-index:10; background:rgba(255,255,255,0.5); border:none; transform:translateY(-50%); display:flex; align-items:center; justify-content:center;">
+                        <span style="font-size:32px; color:#fff;">&#60;</span>
+                        <span class="visually-hidden">이전</span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#mainBannerCarousel" data-bs-slide="next"
+                            style="position:absolute; top:50%; right:0; width:48px; height:48px; z-index:10; background:rgba(255,255,255,0.5); border:none; transform:translateY(-50%); display:flex; align-items:center; justify-content:center;">
+                        <span style="font-size:32px; color:#fff;">&#62;</span>
+                        <span class="visually-hidden">다음</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 배너 아래 경매상품 문구와 정렬 드롭다운 -->
+    <div style="width:1500px; margin:0 auto 24px auto;">
+        <h2 style="font-size:2rem; font-weight:700; margin:0;">경매상품</h2>
+
+    </div>
+
+    <input type="hidden" name="searchQuery" th:value="${itemSearchDto.searchQuery}">
+    <div th:if="${not #strings.isEmpty(itemSearchDto.searchQuery)}" class="center">
+        <p class="h3 font-weight-bold" th:text="${itemSearchDto.searchQuery} + '검색결과'"></p>
+    </div>
+    <!-- 상품 리스트 영역 -->
+    <div class="custom-product-list-wrap" style="width:1500px; margin:0 auto; padding:0;">
+        <div class="row g-3">
+            <th:block th:each="item, status: ${items}">
+                <div class="col-3 mb-3">
+                    <div class="card custom-product-card">
+                        <a th:href="'/auction/'+${item.id}" class="text-dark" style="text-decoration:none;">
+                            <img th:src="${item.repImgUrl}" class="card-img-top custom-product-img" th:alt="${item.itemName}">
+                            <div class="card-body">
+                                <p class="card-title" style="font-weight: 500; margin-bottom: 0.5rem; font-size:14px;">[[${item.itemName}]]</p>
+                                <h6 class="card-title" style="color: #000000; font-weight:600; font-size:16px;"><span>현재입찰가 : </span>[[${item.currentBidPrice}]]원</h6>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+    </div>
+
+    <div th:with="start=${(items.number/maxPage)*maxPage +1},
+             end=(${(items.totalPages == 0) ? 1 : (start + (maxPage-1) < items.totalPages ?
+              start + (maxPage - 1) : items.totalPages)})">
+        <ul class="pagination justify-content-center" style="margin-bottom: 48px;">
+            <li class="page-item" th:classappend="${items.number eq 0}?'disabled'">
+                <a th:href="@{'/' + '?searchQuery=' + ${itemSearchDto.searchQuery} + '&page=' + ${items.number-1}}"
+                   aria-label="Previous" class="page-link">
+                    <span aria-hidden="true">이전</span>
+                </a>
+            </li>
+            <li class="page-item" th:each="page: ${#numbers.sequence(start,end)}"
+                th:classappend="${items.number eq page-1}?'active':''">
+                <a th:href="@{'/' + '?searchQuery=' + ${itemSearchDto.searchQuery} + '&page=' + ${page-1}}"
+                   th:inline="text" class="page-link">
+                    [[${page}]]
+                </a>
+            </li>
+            <li class="page-item" th:classappend="${items.number+1 ge items.totalPages}?'disabled'">
+                <a th:href="@{'/' + '?searchQuery=' ${itemSearchDto.searchQuery} + '&page=' + ${items.number + 1}}"
+                   aria-label="Next" class="page-link">
+                    <span aria-hidden="true">다음</span>
+                </a>
+            </li>
+
+        </ul>
+    </div>
+
+    <!-- 경매상품 리스트 아래에 판매 상품 문구 추가 -->
+    <div style="width:1500px; margin:40px auto 24px auto;">
+        <h2 style="font-size:2rem; font-weight:700; margin:0;">판매 상품</h2>
+    </div>
+
+    <!-- 실제 판매 상품 리스트 -->
+    <div class="custom-product-list-wrap" style="width:1500px; margin:0 auto; padding:0;">
+        <div class="row g-3">
+            <th:block th:each="item, status: ${sellItems.getContent()}">
+                <div class="col-3 mb-3">
+                    <div class="card custom-product-card">
+                        <a th:href="'/item/'+${item.id}" class="text-dark" style="text-decoration:none;">
+                            <img th:src="${item.imgUrl}" class="card-img-top custom-product-img" th:alt="${item.itemNm}">
+                            <div class="card-body">
+                                <p class="card-title" style="font-weight: 500; margin-bottom: 0.5rem; font-size:14px;">[[${item.itemNm}]]</p>
+                                <h6 class="card-title" style="color: #000000; font-weight:600; font-size:16px;">[[${item.price}]]원</h6>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+    </div>
+
+    <!-- ?    -->
+    <div style="height: 48px;"></div>
+
+
+</div>

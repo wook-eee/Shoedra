@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <meta charset="UTF-8">
+    <title>판매상품 리스트</title>
+    <link th:href="@{/css/itemMng.css}" rel="stylesheet">
+</head>
+
+<!-- 사용자 스크립트 추가 -->
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+        $(document).ready(function(){
+           console.log("판매상품 페이지 로드");
+           $("searchBtn").on("click",function(e){
+               e.preventDefault(); //검색버튼 클릭시 form 태그 전송을 막습니다.
+           });
+        });
+    </script>
+</th:block>
+
+<!--사용자 CSS 추가-->
+<th:block layout:fragment="css">
+    <style>
+    </style>
+</th:block>
+
+<div layout:fragment="content">
+    <div class="product-form">
+        <!-- ✅ 페이지 제목 -->
+        <h2 style="text-align: center; margin-bottom: 2rem; color: #333; font-size: 1.8rem;">판매상품 리스트</h2>
+        
+        <!-- ✅ 검색어 -->
+        <input type="text" id="searchQuery" name="searchQuery" placeholder="검색어를 입력해주세요" class="search-input" />
+
+        <!-- ✅ 버튼 -->
+        <button id="searchBtn" type="submit" class="search-btn">검색</button>
+
+        <!-- ✅ 상품 카드 리스트 -->
+        <div class="product-grid" id="productGrid">
+            <div class="product-card" th:each="item : ${items}">
+                                <a th:href="'/item/'+${item.id}">
+                                    <img th:src="${item.repImgUrl}" alt="상품 이미지" class="product-img" />
+                                </a>
+                                <div class="product-info">
+                                    <h3 class="product-title" th:text="${item.itemNm}"></h3>
+                                    <p class="product-price" th:text="${item.price} + '원'"></p>
+                                </div> <!--//.product-info -->
+<!--                                <div class="product-action">-->
+<!--                                    <button type="button" class="auction-btn" th:attr="data-item-id=${item.id}">경매하기</button>-->
+<!--                                </div> &lt;!&ndash;//.product-action &ndash;&gt;-->
+                            </div> <!--//.product-card -->
+            </div> <!--//.product-grid -->
+        <div id="sentinel" style="height: 1px;"></div>
+<!--        <script src="/js/sellItemMng.js"></script>-->
+    </div>
+</div>
+</html> 

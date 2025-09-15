@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>채팅방</title>
+    <!-- CSRF 토큰 meta 태그 추가 -->
+    <meta th:name="_csrf" th:content="${_csrf.token}"/>
+    <meta th:name="_csrf_header" th:content="${_csrf.headerName}"/>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .chat-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .chat-header {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+        .chat-header .type {
+            font-size: 1rem;
+            margin-top: 5px;
+            color: #e0e0e0;
+        }
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+        }
+        .message {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 10px;
+            max-width: 70%;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: #667eea;
+            color: white;
+            border-radius: 18px 18px 0 18px;
+            padding: 10px 15px;
+        }
+        .message.admin {
+            align-self: flex-start;
+            background: #ffb74d;
+            color: #333;
+            border-radius: 18px 18px 18px 0;
+            padding: 10px 15px;
+        }
+        .message.bot {
+            align-self: flex-start;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 18px 18px 18px 0;
+            padding: 10px 15px;
+        }
+        .message.system {
+            align-self: center;
+            background: #f8f9fa;
+            color: #6c757d;
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 0.95em;
+        }
+        .sender-label {
+            font-size: 0.8em;
+            color: #888;
+            margin-bottom: 2px;
+        }
+        .chat-input {
+            padding: 15px;
+            border-top: 1px solid #ddd;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .send-btn, .end-chat-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .send-btn {
+            background: #667eea;
+            color: white;
+        }
+        .end-chat-btn {
+            background: #e74c3c;
+            color: white;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #2196f3;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2 th:text="${chatRoom?.roomName ?: '채팅방'}">채팅방</h2>
+            <div class="type" th:text="${chatRoom?.chatType == '1:1' ? '1:1 상담' : '챗봇 상담'}">상담 유형</div>
+        </div>
+
+        <!-- 1:1 상담방에서 관리자 상담중 안내문구 -->
+        <div th:if="${adminInProgressMsg}" style="background:#fff3cd;color:#856404;padding:12px 18px;margin:10px 0;border-radius:8px;border:1px solid #ffeeba;font-size:1.1em;text-align:center;">
+            <span th:text="${adminInProgressMsg}"></span>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <!-- 서버에서 받은 메시지 렌더링 -->
+            <div th:each="msg : ${messages}"
+                 th:class="'message ' + (${msg.senderType} == 'ADMIN' ? 'admin' : (${msg.senderType} == 'BOT' ? 'bot' : 'user'))">
+                <div th:text="${msg.message}"></div>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <div class="input-group">
+                <input type="text" class="message-input" id="messageInput" placeholder="메시지를 입력하세요...">
+                <button class="send-btn" id="sendButton">전송</button>
+            </div>
+            <!-- 관리자용: 상담종료후 채팅리스트 버튼 -->
+            <button class="end-chat-btn" id="endChatButton"
+                th:if="${#authorization.expression('hasRole(''ADMIN'')')}"
+                onclick="window.location.href='http://localhost/admin/chat/in-progress'">
+                상담종료후 채팅리스트
+            </button>
+            <!-- 유저용: 상담종료후 이전페이지 버튼 -->
+            <button class="end-chat-btn" id="userBackButton"
+                th:if="${!#authorization.expression('hasRole(''ADMIN'')')}"
+                onclick="history.back()">
+                <i class="fas fa-arrow-left"></i> 상담종료후 이전페이지
+            </button>
+        </div>
+    </div>
+
+    <!-- WebSocket 라이브러리 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <script th:inline="javascript">
+        // 채팅방 데이터
+        const chatRoomData = {
+            id: [[${chatRoom?.id}]],
+            chatType: '[[${chatRoom?.chatType}]]',
+            roomName: '[[${chatRoom?.roomName}]]'
+        };
+        
+        const currentUser = '[[${currentUserName}]]';
+        let stompClient = null;
+        
+        // DOM 요소
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const endChatButton = document.getElementById('endChatButton');
+        const userBackButton = document.getElementById('userBackButton');
+        const chatMessages = document.getElementById('chatMessages');
+        
+        function stripQuotes(str) {
+            return typeof str === 'string' ? str.replace(/^"(.*)"$/, '$1') : str;
+        }
+        chatRoomData.chatType = stripQuotes(chatRoomData.chatType);
+        chatRoomData.roomName = stripQuotes(chatRoomData.roomName);
+        console.log('chatRoomData:', chatRoomData); // 값 확인용
+        
+        // 메시지 전송
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+            
+            if (chatRoomData.chatType === 'CHATBOT' || chatRoomData.chatType === '챗봇' || chatRoomData.chatType === '챗봇상담' || chatRoomData.chatType === '2') {
+                addMessage(message, 'user', currentUser);
+                messageInput.value = '';
+                
+                // 타이핑 표시
+                showTypingIndicator();
+                
+                setTimeout(() => {
+                    hideTypingIndicator();
+                    const response = getBotResponse(message);
+                    addMessage(response, 'bot', '챗봇');
+                }, 1000);
+            } else {
+                console.log("stompClient:?"+stompClient);
+                if (stompClient && stompClient.connected) {
+                    stompClient.send("/app/chat.room.message", {}, JSON.stringify({
+                        type: 'MESSAGE',
+                        roomId: chatRoomData.id,
+                        sender: currentUser,
+                        message: message,
+                        timestamp: new Date()
+                    }));
+                    messageInput.value = '';
+                }
+            }
+        }
+        
+        // 메시지 추가 (senderType에 따라 말풍선)
+        function addMessage(content, senderType, senderName) {
+            console.log('addMessage 호출:', {content, senderType, senderName});
+            if (!content || content.trim() === '') return; // 빈 메시지는 무시
+            const chatMessages = document.getElementById('chatMessages'); // 항상 최신 참조
+            if (!chatMessages) return;
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${senderType}`;
+            if (senderType === 'user' || senderType === 'admin' || senderType === 'bot') {
+                messageDiv.innerHTML = `<div>${content.replace(/\n/g, '<br>')}</div>`;
+            } else if (senderType === 'system') {
+                messageDiv.innerHTML = `<div>${content.replace(/\n/g, '<br>')}</div>`;
+            }
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // 타이핑 표시
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'message bot';
+            typingDiv.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        function hideTypingIndicator() {
+            const typingDiv = document.getElementById('typingIndicator');
+            if (typingDiv) typingDiv.remove();
+        }
+        
+        // 챗봇 응답 (복원)
+        function getBotResponse(message) {
+            const lowerMessage = message.toLowerCase();
+            // 주문번호 패턴 확인 (숫자로만 구성된 6-12자리)
+            const orderNumberPattern = /^\d{6,12}$/;
+            const orderNumberWithKeywordPattern = /^(\d{6,12})\s*(.*)$/;
+            if (orderNumberWithKeywordPattern.test(message.trim())) {
+                const match = message.trim().match(orderNumberWithKeywordPattern);
+                const orderNumber = match[1];
+                const keyword = match[2].trim();
+                if (keyword.includes('환불') || keyword.includes('반품')) {
+                    return `주문번호 ${orderNumber}의 환불(반품) 신청이 접수되었습니다. 3일 이내 환불 처리 예정입니다.\n\n추가 문의사항이 있으시면 말씀해주세요.`;
+                } else if (keyword.includes('배송')) {
+                    return `주문번호 ${orderNumber}의 배송 상태는 '배송 준비 중'입니다. 1~2일 내 출고 예정입니다.\n\n배송 관련 문의사항이 있으시면 말씀해주세요.`;
+                } else if (keyword.includes('결제')) {
+                    return `주문번호 ${orderNumber}의 결제는 정상적으로 완료되었습니다.\n\n결제 관련 문의사항이 있으시면 말씀해주세요.`;
+                } else if (keyword.includes('교환')) {
+                    return `주문번호 ${orderNumber}의 교환 신청이 접수되었습니다. 담당자가 곧 연락드릴 예정입니다.`;
+                } else if (keyword.length > 0) {
+                    return `주문번호 ${orderNumber} 관련 문의(\"${keyword}\")를 확인했습니다. 담당자가 곧 답변드릴 예정입니다.`;
+                } else {
+                    // 키워드 없이 주문번호만 입력한 경우 기존 랜덤 답변
+                    const responses = [
+                        `주문번호 ${orderNumber}로 조회한 결과입니다:\n\n📦 배송 상태: 배송 준비 중\n🚚 택배사: CJ대한통운\n📅 예상 배송일: 1-2일 내\n\n추가 문의사항이 있으시면 말씀해주세요.`,
+                        `주문번호 ${orderNumber} 확인 완료!\n\n✅ 주문 상태: 결제 완료\n📦 배송 상태: 상품 준비 중\n📞 문의: 1588-0000\n\n도움이 필요하시면 언제든 말씀해주세요.`,
+                        `주문번호 ${orderNumber} 조회 결과:\n\n🛒 주문 상품: 나이키 에어맥스\n💰 결제 금액: 89,000원\n📅 주문일: 2024년 7월 1일\n\n배송 관련 문의사항이 있으시면 말씀해주세요.`
+                    ];
+                    return responses[Math.floor(Math.random() * responses.length)];
+                }
+            }
+            // 주문번호 형식이 잘못된 경우
+            if (/^\d+$/.test(message.trim()) && (message.trim().length < 6 || message.trim().length > 12)) {
+                return '주문번호는 6-12자리 숫자로 구성되어야 합니다. 다시 확인해주세요.';
+            }
+            if (lowerMessage.includes('주문') && /\d/.test(message) && !orderNumberPattern.test(message.trim())) {
+                return '주문번호는 숫자만 입력해주세요. (예: 123456789)';
+            }
+            // 주문/배송 관련
+            if (lowerMessage.includes('주문') || lowerMessage.includes('배송') || lowerMessage.includes('택배')) {
+                const responses = [
+                    '주문하신 상품의 배송 상태를 확인해드릴까요? 주문번호를 알려주세요.',
+                    '배송 관련 문의사항이 있으시면 주문번호와 함께 말씀해주세요.',
+                    '택배 추적이 필요하시면 주문번호를 입력해주세요.',
+                    '주문번호를 입력하시면 상세한 배송 정보를 확인해드릴 수 있습니다.'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 환불/교환 관련
+            if (lowerMessage.includes('환불') || lowerMessage.includes('교환') || lowerMessage.includes('반품')) {
+                const responses = [
+                    '환불/교환 신청은 구매 후 7일 이내에 가능합니다. 주문번호를 알려주세요.',
+                    '상품에 문제가 있으시면 사진과 함께 주문번호를 알려주세요.',
+                    '환불 신청을 도와드리겠습니다. 주문번호를 입력해주세요.',
+                    '교환/반품 신청을 위해 주문번호를 알려주세요.'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 주문번호 조회 관련
+            if (lowerMessage.includes('주문번호') || lowerMessage.includes('주문 번호') || lowerMessage.includes('주문 조회') || lowerMessage.includes('조회')) {
+                const responses = [
+                    '주문번호를 입력하시면 주문 상태와 배송 정보를 확인해드릴 수 있습니다.',
+                    '주문번호는 6-12자리 숫자로 구성되어 있습니다. 주문번호를 입력해주세요.',
+                    '주문번호로 조회하시려면 숫자만 입력해주세요. (예: 123456789)',
+                    '주문번호를 알려주시면 상세한 주문 정보를 확인해드리겠습니다.',
+                    '주문번호를 입력하시면 배송 상태, 결제 정보, 상품 정보를 한 번에 확인할 수 있습니다.'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 결제 관련
+            if (lowerMessage.includes('결제') || lowerMessage.includes('카드') || lowerMessage.includes('무통장')) {
+                const responses = [
+                    '결제 방법은 신용카드, 계좌이체, 무통장입금이 가능합니다.',
+                    '결제 관련 문의사항이 있으시면 구체적으로 말씀해주세요.',
+                    '결제 오류가 발생하셨나요? 어떤 오류 메시지가 나왔는지 알려주세요.'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 상품 관련
+            if (lowerMessage.includes('상품') || lowerMessage.includes('제품') || lowerMessage.includes('신발')) {
+                const responses = [
+                    '어떤 상품에 대해 궁금하신가요? 상품명이나 브랜드를 알려주세요.',
+                    '상품 재고 확인이 필요하시면 상품명을 입력해주세요.',
+                    '상품 상세 정보를 확인해드릴까요?'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 사이즈 관련
+            if (lowerMessage.includes('사이즈') || lowerMessage.includes('크기') || lowerMessage.includes('fit')) {
+                const responses = [
+                    '사이즈 가이드를 확인해드릴까요? 평소 신으시는 신발 사이즈를 알려주세요.',
+                    '사이즈 교환이 필요하시면 주문번호와 함께 말씀해주세요.',
+                    '사이즈 추천을 받고 싶으시면 발 길이를 알려주세요.'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 가격 관련
+            if (lowerMessage.includes('가격') || lowerMessage.includes('비용') || lowerMessage.includes('얼마')) {
+                const responses = [
+                    '상품 가격은 상품 상세 페이지에서 확인하실 수 있습니다.',
+                    '특정 상품의 가격을 알고 싶으시면 상품명을 알려주세요.',
+                    '할인 정보를 확인해드릴까요?'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 회원가입/로그인 관련
+            if (lowerMessage.includes('회원가입') || lowerMessage.includes('로그인') || lowerMessage.includes('아이디')) {
+                const responses = [
+                    '회원가입은 상단의 "회원가입" 버튼을 클릭하시면 됩니다.',
+                    '로그인에 문제가 있으시면 아이디/비밀번호를 확인해주세요.',
+                    '아이디 찾기가 필요하시면 가입 시 등록한 이메일을 알려주세요.'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 인사말
+            if (lowerMessage.includes('안녕') || lowerMessage.includes('하이') || lowerMessage.includes('hello')) {
+                const responses = [
+                    '안녕하세요! 신발 경매 사이트 챗봇입니다. 무엇을 도와드릴까요?',
+                    '안녕하세요! 궁금한 점이 있으시면 언제든 말씀해주세요.',
+                    '안녕하세요! 주문, 배송, 환불, 상품 문의 등 어떤 문의사항이든 도와드리겠습니다.'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 감사 인사
+            if (lowerMessage.includes('감사') || lowerMessage.includes('고마워') || lowerMessage.includes('thank')) {
+                const responses = [
+                    '도움이 되어서 기쁩니다! 다른 궁금한 점이 있으시면 언제든 말씀해주세요.',
+                    '천만에요! 더 필요한 것이 있으시면 언제든 문의해주세요.',
+                    '감사합니다! 좋은 하루 되세요! 😊'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            // 기본 응답
+            const defaultResponses = [
+                '죄송합니다. 더 구체적으로 말씀해주시면 도움을 드릴 수 있습니다.',
+                '어떤 도움이 필요하신지 자세히 설명해주세요.',
+                '주문, 배송, 환불, 상품 문의 중 어떤 것이 궁금하신가요?',
+                '도움이 필요하시면 구체적으로 말씀해주세요.',
+                '상담원 연결이 필요하시면 1:1 상담을 이용해주세요.',
+                '신발 경매 사이트에서 궁금한 점이 있으시면 언제든 말씀해주세요!',
+                '주문하신 상품이나 배송, 환불 등 어떤 문의사항이든 도와드리겠습니다.',
+                '더 자세한 상담이 필요하시면 1:1 상담을 이용해보세요.'
+            ];
+            return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
+        }
+        
+        // 상담 종료하고 메인으로
+        function goToMain() {
+            window.location.href = '/';
+        }
+        
+        // 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', function() {
+            // 상담방 입장 시점에 이전 페이지가 로그인/회원가입/상담방이 아니면 저장
+            const prevUrl = document.referrer;
+            if (prevUrl && !/login|member|chatRoom/.test(prevUrl)) {
+                sessionStorage.setItem('prevChatPage', prevUrl);
+            }
+            const sendButton = document.getElementById('sendButton');
+            if (sendButton) {
+                sendButton.addEventListener('click', sendMessage);
+            }
+            const endChatButton = document.getElementById('endChatButton');
+            if (endChatButton) {
+                endChatButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // CSRF 토큰 읽기
+                    const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                    // 1. 상담방 완료 처리 요청
+                    fetch(`/admin/chat/${chatRoomData.id}/complete`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            [csrfHeader]: csrfToken
+                        }
+                    }).finally(() => {
+                        // 2. 팝업창이면 닫기, 아니면 채팅리스트로 이동
+                        setTimeout(function() {
+                            if (window.opener) {
+                                window.close();
+                                setTimeout(function() {
+                                    if (!window.closed) {
+                                        window.location.href = 'http://localhost/admin/chat/in-progress';
+                                    }
+                                }, 300);
+                            } else {
+                                window.location.href = 'http://localhost/admin/chat/in-progress';
+                            }
+                        }, 100);
+                    });
+                });
+            }
+            const userBackButton = document.getElementById('userBackButton');
+            if (userBackButton) {
+                userBackButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // CSRF 토큰 읽기
+                    const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                    const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                    fetch(`/chat/room/${chatRoomData.id}/delete`, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            [csrfHeader]: csrfToken
+                        }
+                    }).finally(() => {
+                        // 팝업창이면 닫기, 아니면 기존 이동
+                        setTimeout(function() {
+                            if (window.opener) {
+                                window.close();
+                            } else {
+                                const prev = sessionStorage.getItem('prevChatPage');
+                                if (prev) {
+                                    window.location.href = prev;
+                                } else {
+                                    window.location.href = '/';
+                                }
+                            }
+                        }, 100);
+                    });
+                });
+            }
+            const messageInput = document.getElementById('messageInput');
+            if (messageInput) {
+                messageInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Enter') {
+                        sendMessage();
+                    }
+                });
+            }
+            if (chatRoomData.chatType === 'CHATBOT' || chatRoomData.chatType === '챗봇' || chatRoomData.chatType === '챗봇상담' || chatRoomData.chatType === '2') {
+                // 챗봇 상담방: WebSocket 연결/구독/입장 메시지 전송 등 없음
+                setTimeout(() => {
+                    const welcomeMessage = '안녕하세요! 신발 경매 사이트 챗봇입니다. 🤖\n\n주문, 배송, 환불, 상품 문의 등 무엇이든 도와드리겠습니다.\n\n자주 묻는 질문:\n• 주문/배송 문의 (주문번호 입력)\n• 환불/교환 신청\n• 결제 방법 안내\n• 상품 정보 확인\n• 사이즈 가이드\n\n💡 주문번호로 빠른 조회가 가능합니다!\n궁금한 점을 자유롭게 물어보세요! 😊';
+                    addMessage(welcomeMessage, 'bot', '챗봇');
+                }, 500);
+            } else {
+                // 1:1 상담 WebSocket 연결
+                const socket = new SockJS('/ws');
+                console.log("소켓:"+socket);
+                stompClient = Stomp.over(socket);
+                stompClient.connect({}, function(frame) {
+                    stompClient.subscribe('/topic/room/' + chatRoomData.id, function(message) {
+                        const chatMessage = JSON.parse(message.body);
+                        if (chatMessage.type === 'JOIN') {
+                            if (chatMessage.message && chatMessage.message.trim() !== '') {
+                                addMessage(chatMessage.message, chatMessage.senderType === 'ADMIN' ? 'admin' : 'user', chatMessage.sender);
+                            }
+                        } else if (chatMessage.type === 'MESSAGE') {
+                            if (chatMessage.senderType === 'ADMIN') {
+                                addMessage(chatMessage.message, 'admin', chatMessage.sender);
+                            } else {
+                                // 유저 메시지
+                                const isCurrentUser = chatMessage.sender === currentUser;
+                                addMessage(chatMessage.message, isCurrentUser ? 'user' : 'admin', chatMessage.sender);
+                            }
+                        }
+                    });
+                    // 입장 메시지 전송
+                    setTimeout(() => {
+                        stompClient.send("/app/chat.room.join", {}, JSON.stringify({
+                            type: 'JOIN',
+                            roomId: chatRoomData.id,
+                            sender: currentUser,
+                            message: '',
+                            timestamp: new Date()
+                        }));
+                    }, 1000);
+                }, function(error) {
+                    console.error('WebSocket 연결 실패:', error);
+                    addMessage('연결에 실패했습니다. 페이지를 새로고침해주세요.', 'system');
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

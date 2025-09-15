@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<div th:fragment="header" class="header">
+    <!-- CSRF 토큰 추가 -->
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+    
+    <div class="container">
+        <header class="header" id="header">
+            <div class="header-inner">
+                <div class="left-group">
+                    <a href="/" class="logo-wrapper">
+                        <img src="/images/item/test2.png" alt="SHOEDRA Logo" class="logo-img" />
+                    </a>
+                    <button class="hamburger" onclick="toggleMenu()">☰</button>
+                    <nav class="nav-menu" id="navMenu">
+                        <a href="/item/sell-items">SHOP</a>
+                        <a href="/auction/auctions">AUCTION</a>
+                        <a href="/calendar">CALENDAR</a>
+                        <a href="/cash">CASH</a>
+                        <a href="/admin/items" sec:authorize="hasAnyAuthority('ROLE_ADMIN')">DATA</a>
+                    </nav>
+                </div>
+                <div class="right-group">
+<!--                    <div class="search-box">-->
+<!--                        <input type="text" placeholder="검색어를 입력하세요" />-->
+<!--                    </div>-->
+                    <!-- SSE 유저 보기 -->
+<!--                    <button sec:authorize="hasAnyAuthority('ROLE_ADMIN')" onclick="fetch('/sse/list').then(res => res.json()).then(data => {-->
+<!--                      alert('SSE 연결 사용자:\n' + data.join('\n'));-->
+<!--                    })">연결된 유저 보기</button>-->
+                    <div class="icons">
+                        <a href="/members/login" sec:authorize="isAnonymous()">Login</a>
+                        <a href="/mypage" sec:authorize="isAuthenticated()">mypage</a>
+                        <a href="/members/logout" sec:authorize="isAuthenticated()">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+    </div>
+</div>
+
+</html>

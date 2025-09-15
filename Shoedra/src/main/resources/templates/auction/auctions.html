@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+<!-- 해당페이지 css import   -->
+<!--    <link th:href="@{/css/test.css}" rel="stylesheet">-->
+</head>
+<!--스크립트-->
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+        let page = 0;
+  const size = 8;
+  let isLoading = false;
+  let isLastPage = false;
+
+  function getStatusText(state) {
+    switch (state) {
+      case 'READY': return '경매전';
+      case 'IN_PROGRESS': return '경매중';
+      case 'ENDED': return '경매마감';
+      default: return '알 수 없음';
+    }
+  }
+
+  function createAuctionCard(auction) {
+    return `
+      <a href="/auction/${auction.id}" class="auction-card">
+        <img src="${auction.repImgUrl}" alt="상품 이미지" class="auction-img">
+        <h3>${auction.itemName}</h3>
+        <p>시작가: ${auction.startPrice}원</p>
+        <p>현재가: ${auction.currentBidPrice}원</p>
+        <p class="auction-status ${auction.auctionState}">${getStatusText(auction.auctionState)}</p>
+      </a>
+    `;
+  }
+
+  function loadAuctions() {
+    if (isLoading || isLastPage) return;
+    isLoading = true;
+
+    fetch(`/auction/auctions/load?page=${page}&size=${size}`)
+      .then(res => res.json())
+      .then(data => {
+        console.log("▶ 페이지:", page, "| 마지막 페이지? ", data.last);
+
+        if (data.content.length === 0 && page === 0) {
+          document.getElementById('auctionGrid').innerHTML =
+            '<div style="text-align:center;padding:2rem;">등록된 경매가 없습니다</div>';
+          isLastPage = true;
+          return;
+        }
+
+        const grid = document.getElementById('auctionGrid');
+        data.content.forEach(auction => {
+          grid.insertAdjacentHTML('beforeend', createAuctionCard(auction));
+        });
+
+        if (data.last) {
+          isLastPage = true;
+          observer.disconnect();
+        } else {
+          page++;
+        }
+      })
+      .finally(() => {
+        isLoading = false;
+      });
+  }
+
+  let observer;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    loadAuctions();
+
+    const sentinel = document.getElementById('sentinel');
+    if (!sentinel) {
+        console.error("sentinel 요소가 없습니다.");
+        return;
+    }
+
+    // observer가 이미 존재하면 disconnect (중복 감지 방지)
+    if (observer) observer.disconnect();
+
+    observer = new IntersectionObserver(entries => {
+        if (entries[0].isIntersecting && !isLoading && !isLastPage) {
+          loadAuctions();
+        }
+    });
+
+    observer.observe(sentinel);
+
+     requestAnimationFrame(() => {
+        const rect = sentinel.getBoundingClientRect();
+        if (rect.top < window.innerHeight && !isLoading && !isLastPage) {
+          loadAuctions();
+        }
+      });
+  });
+    </script>
+</th:block>
+<!--css-->
+<th:block layout:fragment="css">
+    <style>
+        #auctionWrapper {
+          min-height: 100vh; /* 🔥 브라우저 높이만큼 확보해서 sentinel 감지 확률 증가 */
+          display: flex;
+          flex-direction: column;
+        }
+        .auction-grid {
+          max-width: 1280px;     /* header-inner 기준 */
+          margin: 0 auto;         /* 가운데 정렬 */
+          padding: 2rem;
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 2rem;
+          background-color: #f8f9fa;
+          flex-grow: 1;
+        }
+
+        /* 경매 카드 */
+        .auction-card {
+          background-color: #fff;
+          border-radius: 12px;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+          padding: 1.2rem;
+          transition: transform 0.2s ease, box-shadow 0.3s ease;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          text-decoration: none;
+        }
+
+        .auction-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        /* 이미지 */
+        .auction-card img {
+          width: 100%;
+          height: 180px;
+          object-fit: cover;
+          border-radius: 8px;
+          margin-bottom: 1rem;
+        }
+
+        /* 제목 */
+        .auction-card h3 {
+          font-size: 1.1rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          text-align: center;
+        }
+
+        /* 텍스트 정보 */
+        .auction-card p {
+          font-size: 0.95rem;
+          color: #555;
+          margin: 0.25rem 0;
+        }
+
+        .auction-status {
+          font-weight: bold;
+          padding: 0.3rem 0.7rem;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          margin-top: 0.5rem;
+          text-align: center;
+        }
+
+        /* 상태별 색상 구분 */
+        .auction-status.BEFORE {
+          color: #856404;
+          background-color: #fff3cd;
+        }
+
+        .auction-status.IN_PROGRESS {
+          color: #155724;
+          background-color: #d4edda;
+        }
+
+        .auction-status.CLOSED {
+          color: #721c24;
+          background-color: #f8d7da;
+        }
+
+        #sentinel {
+          height: 100px;  /* 최소한 50~100px은 줘야 감지됨 */
+        }
+    </style>
+</th:block>
+
+<div layout:fragment="content">
+    <div id="auctionWrapper">
+        <div id="auctionGrid" class="auction-grid">
+            <!-- 경매 카드가 여기에 무한 추가됨 -->
+        </div>
+
+        <!-- 스크롤 끝 감지용 -->
+        <div id="sentinel"></div>
+    </div>
+</div>
+</html>

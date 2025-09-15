@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <title>입찰 내역</title>
+</head>
+<th:block layout:fragment="css">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 16px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+        .simple-pagination {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 16px;
+                margin-top: 30px;
+                font-size: 16px;
+            }
+
+            .page-controls {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .page-controls button {
+                background-color: white;
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                padding: 6px 10px;
+                font-size: 14px;
+                color: #555;
+                cursor: pointer;
+                transition: background-color 0.2s ease;
+            }
+
+            .page-controls button:hover:not(:disabled) {
+                background-color: #f0f0f0;
+            }
+
+            .page-controls button:disabled {
+                color: #aaa;
+                cursor: not-allowed;
+                background-color: #f9f9f9;
+            }
+
+            .current-page-number {
+                min-width: 24px;
+                text-align: center;
+                font-weight: 600;
+                color: #333;
+            }
+
+            .page-total {
+                font-weight: 500;
+                color: #555;
+                min-width: 60px;
+                text-align: left;
+            }
+            .page-link {
+                display: inline-block;
+                padding: 8px 10px;
+                font-size: 20px;
+                font-weight: bold;
+                color: #333;
+                background-color: white;
+                text-decoration: none;
+                transition: background-color 0.2s ease;
+            }
+
+            .page-link.disabled {
+                color: #aaa;
+                pointer-events: none;
+            }
+    </style>
+</th:block>
+<body>
+<div layout:fragment="content" class="container mt-5">
+    <h2>입찰 내역</h2>
+    <p>내가 입찰한 내역이 여기에 표시됩니다.</p>
+    <table border="1">
+        <thead>
+        <tr>
+            <th>상품명</th>
+            <th>입찰가</th>
+            <th>입찰시간</th>
+            <th>낙찰 여부</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="bid : ${historyPage.content}">
+            <td th:text="${bid.itemName}"></td>
+            <td th:text="${bid.bidPrice} + '원'"></td>
+            <td th:text="${#temporals.format(bid.bidTime, 'yyyy-MM-dd HH:mm')}"></td>
+            <td>
+                <span th:if="${!bid.isWinning}" class="text-secondary">미낙찰</span>
+
+                <a th:if="${bid.isWinning}" th:href="@{/mypage/win-history}" class="text-success text-decoration-none">
+                    낙찰
+                </a>
+            </td>
+        </tr>
+<!--        <tr th:each="history : ${cashList}">-->
+<!--            &lt;!&ndash;                    <td th:text="${history.member.name}"></td>&ndash;&gt;-->
+<!--            <td th:text="${#temporals.format(history.createdAt, 'yyyy-MM-dd HH:mm')}"></td>-->
+<!--            <td th:text="${history.amount} + '원'"></td>-->
+<!--            <td th:text="${history.method}"></td>-->
+<!--            <td>-->
+<!--                <input type="text"-->
+<!--                       th:id="'reason_' + ${history.id}"-->
+<!--                       th:value="${history.refunded} ? '환불 완료' : ''"-->
+<!--                       th:readonly="${history.refunded}"-->
+<!--                       placeholder="사유 입력" />-->
+<!--            </td>-->
+<!--            <td>-->
+<!--                <button th:if="${!history.refunded}"-->
+<!--                        th:attr="onclick=|requestRefund(${history.id})|">-->
+<!--                    환불 요청-->
+<!--                </button>-->
+<!--                <span th:if="${history.refunded}">완료됨</span>-->
+<!--            </td>-->
+<!--        </tr>-->
+        </tbody>
+    </table>
+
+    <!-- ✅ 페이징 UI -->
+    <div class="simple-pagination" th:if="${totalPages > 1}">
+        <div class="page-controls">
+
+            <!-- 이전 버튼 -->
+            <a th:if="${!historyPage.first}"
+               th:href="@{/mypage/bid-history(page=${currentPage - 1})}"
+               class="page-link">&lt;</a>
+            <span th:if="${historyPage.first}" class="page-link disabled">&lt;</span>
+
+            <!-- 현재 페이지 번호 -->
+            <span class="current-page-number" th:text="${currentPage + 1}">1</span>
+
+            <!-- 다음 버튼 -->
+            <a th:if="${!historyPage.last}"
+               th:href="@{/mypage/bid-history(page=${currentPage + 1})}"
+               class="page-link">&gt;</a>
+            <span th:if="${historyPage.last}" class="page-link disabled">&gt;</span>
+
+        </div>
+
+        <!-- 전체 페이지 수 -->
+        <span class="page-total" th:text="'[' + (${currentPage + 1}) + '/' + ${totalPages} + ']'">[1/2]</span>
+    </div>
+
+<!--    <nav th:if="${totalPages > 1}">-->
+<!--        <ul class="pagination justify-content-center">-->
+<!--            <li class="page-item" th:classappend="${historyPage.first} ? 'disabled'">-->
+<!--                <a class="page-link" th:href="@{/mypage/bid-history(page=${currentPage - 1})}">이전</a>-->
+<!--            </li>-->
+
+<!--            <li class="page-item"-->
+<!--                th:each="i : ${#numbers.sequence(0, totalPages - 1)}"-->
+<!--                th:classappend="${i == currentPage} ? 'active'">-->
+<!--                <a class="page-link" th:href="@{/mypage/bid-history(page=${i})}" th:text="${i + 1}">1</a>-->
+<!--            </li>-->
+
+<!--            <li class="page-item" th:classappend="${historyPage.last} ? 'disabled'">-->
+<!--                <a class="page-link" th:href="@{/mypage/bid-history(page=${currentPage + 1})}">다음</a>-->
+<!--            </li>-->
+<!--        </ul>-->
+<!--    </nav>-->
+
+</div>
+</body>
+</html> 

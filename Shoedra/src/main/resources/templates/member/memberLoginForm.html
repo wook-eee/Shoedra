@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+
+<!-- 사용자 CSS 추가 -->
+<th:block layout:fragment="css">
+    <style>
+        .content{
+            display: flex;
+            justify-content: center;
+        }
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: calc(100vh - 200px);
+            padding: 2rem 0;
+            width:600px;
+        }
+
+        .form-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+
+
+        }
+
+        .form-title {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+        }
+
+        .error-message {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .register-link {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .register-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .register-link a:hover {
+            text-decoration: underline;
+        }
+
+
+        /* 소셜로그인 버튼 영역 시작 */
+        .social-login-row {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 2rem 0 1rem 0;
+        }
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            max-width: 340px;
+            margin: 0 auto;
+            height: 48px;
+            border-radius: 6px;
+            font-size: 1.08rem;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            cursor: pointer;
+            transition: box-shadow 0.18s, background 0.18s;
+            border: none;
+            outline: none;
+            gap: 12px;
+            text-decoration: none;
+        }
+        .social-btn.google {
+            background: #fff;
+            color: #222;
+            border: 1px solid #e0e0e0;
+        }
+        .social-btn.google:hover {
+            box-shadow: 0 4px 16px rgba(66,133,244,0.10);
+            border-color: #bdbdbd;
+        }
+        .social-btn.naver {
+            background: #03c75a;
+            color: #fff;
+        }
+        .social-btn.naver:hover {
+            background: #02b152;
+        }
+        .social-btn.kakao {
+            background: #fee500;
+            color: #181600;
+            border: 1px solid #e0c800;
+        }
+        .social-btn.kakao:hover {
+            background: #ffe14a;
+        }
+        .social-btn .icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+        }
+    </style>
+</th:block>
+<div layout:fragment="content">
+    <div class="auth-container">
+        <div class="form-container">
+            <h2 class="form-title">로그인</h2>
+
+            <form th:action="@{/members/login}" method="post">
+                <div class="form-group">
+                    <label for="email">이메일</label>
+                    <input type="email" id="email" name="email" placeholder="이메일을 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
+                </div>
+
+                <div class="error-message" th:if="${loginErrorMsg}" th:text="${loginErrorMsg}"></div>
+
+                <button type="submit" class="submit-btn">로그인</button>
+            </form>
+
+            <div class="social-login-row">
+                <div style="text-align:center; color:#888; font-size:0.95rem; margin-bottom:2px;">또는 소셜 계정으로 로그인</div>
+                <a href="/oauth2/authorization/google" class="social-btn google">
+                    <span class="icon">
+                        <!-- Google G SVG -->
+                        <svg width="28" height="28" viewBox="0 0 48 48"><g><path fill="#4285F4" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.22l6.85-6.85C35.64 2.36 30.18 0 24 0 14.82 0 6.71 5.82 2.69 14.19l7.98 6.2C12.36 13.36 17.68 9.5 24 9.5z"/><path fill="#34A853" d="M46.1 24.55c0-1.64-.15-3.22-.43-4.74H24v9.01h12.42c-.54 2.9-2.18 5.36-4.65 7.01l7.19 5.6C43.98 37.36 46.1 31.45 46.1 24.55z"/><path fill="#FBBC05" d="M10.67 28.39c-.48-1.44-.76-2.97-.76-4.59s.28-3.15.76-4.59l-7.98-6.2C1.01 16.36 0 20.05 0 24c0 3.95 1.01 7.64 2.69 10.99l7.98-6.2z"/><path fill="#EA4335" d="M24 48c6.18 0 11.36-2.05 15.15-5.59l-7.19-5.6c-2.01 1.35-4.59 2.15-7.96 2.15-6.32 0-11.64-3.86-13.33-9.29l-7.98 6.2C6.71 42.18 14.82 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></g></svg>
+                    </span>
+                    <span>구글로 로그인</span>
+                </a>
+                <a href="/oauth2/authorization/naver" class="social-btn naver">
+                    <span class="icon">
+                        <!-- Naver N SVG -->
+                        <svg width="28" height="28" viewBox="0 0 48 48"><rect width="48" height="48" rx="8" fill="#03c75a"/><path d="M14 14h6.5l7.5 10.5V14H34v20h-6.5l-7.5-10.5V34H14V14z" fill="#fff"/></svg>
+                    </span>
+                    <span>네이버로 로그인</span>
+                </a>
+                <a href="/oauth2/authorization/kakao" class="social-btn kakao">
+                    <span class="icon">
+                        <!-- Kakao Talk SVG (말풍선) -->
+                        <svg width="28" height="28" viewBox="0 0 40 40"><ellipse cx="20" cy="20" rx="18" ry="15" fill="#3C1E1E"/><path d="M20 7c-8.284 0-15 4.477-15 10 0 3.02 2.13 5.7 5.44 7.51L8 33l7.13-4.19C16.77 28.93 18.36 29 20 29c8.284 0 15-4.477 15-10S28.284 7 20 7z" fill="#fee500"/><ellipse cx="20" cy="20" rx="15" ry="10" fill="#fee500"/><ellipse cx="20" cy="20" rx="13" ry="8.5" fill="#fee500"/><ellipse cx="20" cy="20" rx="11" ry="7" fill="#fee500"/></svg>
+                    </span>
+                    <span>카카오로 로그인</span>
+                </a>
+            </div>
+
+            <div class="register-link">
+                계정이 없으신가요? <a href="/members/new">회원가입하기</a>
+            </div>
+
+        </div> <!-- //form-container -->
+    </div> <!-- //auth-container -->
+</div>
+</html>

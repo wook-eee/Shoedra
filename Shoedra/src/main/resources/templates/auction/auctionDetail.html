@@ -1,0 +1,474 @@
+<!--페이지 템플릿 header, footer 고정-->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <meta charset="UTF-8">
+    <title>경매상품 상세</title>
+
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <!-- 해당페이지 css import   -->
+    <!--    <link th:href="@{/css/test.css}" rel="stylesheet">-->
+</head>
+<!--스크립트-->
+<th:block layout:fragment="script">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <script th:inline="javascript">
+        let interval;
+
+        //interval = setInterval(bidList, 1000);
+
+        let restTime;
+
+        let myChart;
+
+        interval = setInterval(function() {
+                var auctionId = $("#auctionId").val();
+                var endTime = [[${auction.endTime}]];
+
+                if(restTime != undefined && restTime <= 0){
+                    clearInterval(interval);
+                }else{
+                    $.ajax({
+                    url: "/auction/bid",
+                    type: "GET",
+                    data: {
+                        id: auctionId,
+                        end: endTime
+                    },
+                    success: function (result) {
+                        //console.log(result.auctionBidInfo.bidList.length);
+
+<!--                        const element = document.getElementById('currentPrice');-->
+<!--                        const resetTime = document.getElementById('restTime');-->
+
+                        const bidPriceSelect = document.getElementById('bidPriceSelect');
+                        const currentPriceElement = document.getElementById('currentPrice');
+
+                        const bidBtn = document.getElementById('bidOn');
+                        const bidder =document.getElementById('bidder');
+                        const restTimeElement = document.getElementById('restTime');
+
+                        restTime = result.restTime;
+
+
+
+
+
+                        if(restTime <= 0){
+                            //console.log("낙찰자번호:"+result.auctionBidInfo.bidList[result.auctionBidInfo.bidList.length-1].bidderNickname);
+                            restTimeElement.innerText = "경매마감";
+
+                            if(bidPriceSelect){
+                                bidPriceSelect.remove();
+                                const labelElement = document.querySelector('label[for="bidPriceSelect"]');
+                                if (labelElement) {
+                                    labelElement.innerHTML = "낙찰자";
+                                }
+                                if(result.bidList && result.bidList.length > 0){
+                                    bidder.innerHTML = result.auctionBidInfo.bidList[result.auctionBidInfo.bidList.length - 1].bidderNickname || "정보 없음";
+<!--                                    bidder.innerHTML = result.bidList[result.bidList.length-1].email;-->
+                                }
+                            }
+                            if(bidBtn){
+                                bidBtn.disabled = true;
+                            }
+
+
+                        }else{
+                            const hours = Math.floor(restTime / 3600);
+                            const minutes = Math.floor((restTime % 3600) / 60);
+                            const seconds = restTime % 60;
+
+<!--                            resetTime.innerText = hours+"시간 "+minutes+"분 "+seconds+"초";-->
+                            restTimeElement.innerText = `${hours}시간 ${minutes}분 ${seconds}초`;
+                        }
+
+                        const row = [];
+                        const col = [];
+
+                        // 입찰내역 처리
+
+
+                        if (result.auctionBidInfo && result.auctionBidInfo.bidList.length > 0) {
+
+                            const TIME_ZONE = 9 * 60 * 60 * 1000; // 9시간
+
+                            // 입찰리스트 row : 시간 col : 입찰금액
+                            result.auctionBidInfo.bidList.forEach(function (bid) {
+                                const date = new Date(bid.bidTime);
+                                const bidTime = new Date(date.getTime() + TIME_ZONE).toISOString().replace('T', ' ').slice(0, -5);
+
+                                row.push(bidTime);
+                                col.push(bid.bidPrice);
+                            });
+
+                            //입찰가 갱신되었을때
+
+                            const latestBidPrice = col[col.length - 1];
+
+                            // 현재입찰금 변경
+
+                            if (currentPriceElement.innerText !== latestBidPrice.toLocaleString()) {
+                                currentPriceElement.innerText = latestBidPrice.toLocaleString();
+                                updateBidOptions(latestBidPrice);
+                            }
+
+
+                            <!--
+                            if(currentPriceElement && currentPriceElement.innerText !== String(latestBidPrice)){
+                                currentPriceElement.innerText = latestBidPrice;
+                                updateBidOptions(latestBidPrice, result.auctionBidInfo.startingPrice || 1000);
+                            }else{
+                                element.querySelector('span').innerText = col.slice(-1);
+                            }
+                            -->
+
+                        }else {
+                            console.log("결과startingPrice:"+result.auctionBidInfo.startingPrice);
+                            const startPrice = result.auctionBidInfo.startingPrice || 1000;
+                            currentPriceElement.innerText = 0;
+                            updateBidOptions(0, startPrice);
+                        }
+
+                        // 차트가 이미 생성되어 있으면 업데이트만 하기
+                        if (myChart) {
+                            myChart.data.labels = row;   // x축 데이터 갱신
+                            myChart.data.datasets[0].data = col;  // y축 데이터 갱신
+                            myChart.update();  // 차트 업데이트
+                        } else {
+                            // 차트가 없으면 새로 생성하기
+                            var chartArea = document.getElementById('myChart').getContext('2d');
+                            myChart = new Chart(chartArea, {
+                                type: 'line',
+                                data: {
+                                    labels: row,
+                                    datasets: [{
+                                        label: 'BidPrice',
+                                        data: col,
+                                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                        borderColor: 'rgba(255, 99, 132, 1)',
+                                        borderWidth: 1
+                                    }]
+                                },
+                                options: {
+                                    scales: {
+                                        y: {
+                                            beginAtZero: true
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                        },
+                        error: function (jqXHR, status, error) {
+                            if (jqXHR.status == '401') {
+                                alert('로그인 후 이용해주세요.');
+                                location.href = '/members/login';
+                            } else {
+                                alert(jqXHR.responseText);
+                            }
+                        }
+                    });
+                }
+
+
+
+        }, 1000);
+
+
+
+        function updateBidOptions(currentBidPrice, startingPrice) {
+            const select = document.getElementById("bidPriceSelect");
+
+            if (!select) return;
+
+
+            // 옵션 초기화
+            //select.innerHTML = "";
+
+            // 기준 가격 결정
+            let price = (currentBidPrice === 0) ? startingPrice : Number(currentBidPrice);
+
+
+            // 최소 입찰 단위: 1000원, 최대 99999원까지
+            for (let i = price; i <= 99999; i += 1000) {
+                const option = document.createElement("option");
+                option.value = i;
+                option.textContent = i.toLocaleString(); // 쉼표 표시 (예: 10,000)
+
+                select.appendChild(option);
+            }
+
+        }
+
+
+        //입찰하기
+        function addBid(){
+
+            const token = $("meta[name='_csrf']").attr("content");
+            const header = $("meta[name='_csrf_header']").attr("content");
+
+            const auctionId = document.getElementById("auctionId").value;
+            const bidPrice = document.getElementById("bidPriceSelect").value;
+
+            //const memberId = $("#memberId").val();
+
+            $.ajax({
+                url: "/auction/bid",
+                type: "POST",
+                contentType: "application/json",
+                beforeSend : function(xhr){
+                    xhr.setRequestHeader(header, token);
+                },
+                data: JSON.stringify({
+                    //memberId : memberId,
+                    auctionId: auctionId,
+                    bidPrice: bidPrice
+                }),
+                success: function (currentPrice) {
+                    console.log("입찰 성공, 새 입찰가:", currentPrice);
+                    console.log("typeof:", typeof result);
+                    // 현재입찰가 갱신
+                    const currentPriceElement = document.getElementById("currentPrice");
+                    currentPriceElement.innerText = currentPrice.toLocaleString();
+
+                    // 입찰 옵션 갱신
+                    updateBidOptions(currentPrice);
+
+                    $('#staticBackdrop').modal('hide');
+
+                    alert("입찰완료");
+
+
+                    // 실시간 반영을 위해 현재 입찰가/입찰내역 갱신
+                    // 또는 interval 함수에서 자동 갱신 처리됨
+                },
+                error: function (jqXHR) {
+                    if (jqXHR.status === 400 || jqXHR.status === 500) {
+                        alert(jqXHR.responseText); // 서버에서 보낸 에러 메시지
+                    } else if (jqXHR.status === 401) {
+                        alert("로그인이 필요합니다.");
+                        window.location.href = "/members/login";
+                    } else {
+                        alert("입찰 요청 중 오류가 발생했습니다.");
+                    }
+                }
+            });
+
+
+        }
+
+
+        /*<![CDATA[*/
+        var auctionId = /*[[${auctionId}]]*/ 0;
+
+        function loadConnectedUsers() {
+            fetch('/auction/' + auctionId + '/connected-users')
+                .then(response => response.json())
+                .then(users => {
+                    const list = document.getElementById('connectedUsersList');
+                    list.innerHTML = '';
+                    if (users.length === 0) {
+                        list.innerHTML = '<li>현재 연결된 사용자가 없습니다.</li>';
+                        return;
+                    }
+                    users.forEach(user => {
+                        const li = document.createElement('li');
+                        li.textContent = user;
+                        list.appendChild(li);
+                    });
+                })
+                .catch(error => {
+                    console.error('사용자 목록 로드 실패:', error);
+                });
+        }
+        /*]]>*/
+    </script>
+</th:block>
+<!--css-->
+<th:block layout:fragment="css">
+    <style>
+        .auction-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 2rem;
+        }
+
+        .auction-title {
+          font-size: 1.8rem;
+          margin-bottom: 2rem;
+          text-align: left;
+        }
+
+        .auction-main {
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          gap: 4rem;
+        }
+
+        .auction-left {
+          flex-shrink: 0;
+          max-width: 440px;
+          padding-left : 2rem;
+          padding-bottom : 2rem;
+        }
+
+        .auction-right {
+          flex-grow: 1;
+          min-width: 300px;
+          padding-left: 3rem;
+        }
+
+        .auction-img {
+          width: 100%;
+          max-width: 400px;
+          max-height: 400px;
+          object-fit: contain;
+          border-radius: 10px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin: 0 auto; /* 가운데 정렬 */
+          display: block;
+        }
+        .chart-container{
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+        }
+
+
+        .chart-img {
+          width: 100%;
+          max-height: 200px;
+          object-fit: contain;
+          margin-top: 1rem;
+        }
+
+        .bid-section {
+          margin-top: 1.5rem;
+        }
+
+        .bid-section input {
+          width: 50%;
+          padding: 0.5rem;
+          font-size: 1rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .bid-btn {
+          width: 30%;
+          padding: 0.75rem;
+          background-color: #007bff;
+          color: white;
+          font-weight: bold;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+
+        .item-detail-section {
+          margin-top: 3rem;
+          padding-top: 2rem;
+          border-top: 1px solid #eee;
+        }
+
+        .item-detail-section h3 {
+          font-size: 1.4rem;
+          margin-bottom: 1rem;
+        }
+
+        .item-detail-section img{
+            display: block;
+              max-width: 100%;
+              width: auto;
+              margin: 0 auto;
+        }
+    </style>
+</th:block>
+
+<div layout:fragment="content">
+    <div class="auction-container">
+        <h2 class="auction-title">경매 상세 정보</h2>
+
+<!--        <ul id="connectedUsersList">-->
+<!--            <li>불러오는 중...</li>-->
+<!--        </ul>-->
+<!--        <button type="button" onclick="loadConnectedUsers()">사용자 목록 새로고침</button>-->
+
+        <div class="auction-main">
+            <!-- 좌측: 이미지 -->
+            <div class="auction-left">
+                <img class="auction-img" th:src="@{${auction.item.repImgUrl}}" alt="대표 이미지" />
+            </div>
+
+            <!-- 우측: 정보 + 그래프 + 입찰 -->
+            <div class="auction-right">
+                <div class="auction-info">
+                    <input type="hidden" id="auctionId" th:value="${auction.id}">
+                    <p><strong>상품명:</strong> <span th:text="${auction.item.itemNm}"></span></p>
+                    <p id="restTime" style="color: red;"></p>
+                    <p>
+                        <strong>경매 상태:</strong>
+                        <span th:text="${auction.auctionState == T(com.shop.constant.AuctionState).READY ? '경매 전'
+                                        : (auction.auctionState == T(com.shop.constant.AuctionState).IN_PROGRESS ? '진행 중'
+                                        : (auction.auctionState == T(com.shop.constant.AuctionState).ENDED ? '종료'
+                                        : '알 수 없음'))}">
+
+                        </span>
+                    </p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="myChart"></canvas>
+                </div>
+                <div class="auction-info-price">
+                    <p><strong>시작가:</strong> <span th:text="${auction.startPrice}"></span>원</p>
+                    <p><strong>현재입찰가:</strong> <span id="currentPrice"></span>원</p>
+                    <button type="button" class="btn btn-primary bid-btn" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+                        입찰하기</button>
+                </div>
+<!--                <div class="bid-section">-->
+<!--&lt;!&ndash;                    <label for="bidPrice">입찰가</label>&ndash;&gt;-->
+<!--&lt;!&ndash;                    <input type="number" id="bidPrice" name="bidPrice" />&ndash;&gt;-->
+<!--                    -->
+<!--                </div>-->
+                <!-- Modal -->
+                <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="staticBackdropLabel">Modal title</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+<!--                                <p th:text="${auction.restTime}" id="restTime"></p>-->
+                                <!-- 임시로 넣음 -->
+<!--                                <input type="hidden" id="memberId" name="memberId" value="3">-->
+                                <label for="bidPriceSelect">입찰금</label>
+                                <span id="bidder"></span>
+                                <select id="bidPriceSelect" class="form-select"></select>
+                                <!--                    <select id="bidPrice" class="form-select">-->
+                                <!--                        <option name="bidPrice" th:each="price: ${#numbers.sequence(auction.currentBidPrice, 99999, 1000)}" th:value="${price}" th:text="${price}"></option>-->
+                                <!--                    </select>-->
+                                <!--                    <p th:text="${auction.startPrice}"></p>-->
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" id="bidOn" onclick="addBid()">입찰</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 상품 상세 설명 -->
+        <div class="item-detail-section">
+            <h3>상품 상세 설명</h3>
+            <p th:utext="${auction.item.itemDetail}"></p>
+        </div>
+    </div>
+</div>
+</html>

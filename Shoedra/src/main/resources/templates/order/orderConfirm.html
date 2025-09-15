@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <title>주문서 확인</title>
+    <style>
+        body { padding-bottom: 120px; }
+    </style>
+</head>
+<body>
+<div layout:fragment="content" class="container d-flex justify-content-center align-items-start"
+     style="min-height:100vh; margin-top:60px;">
+    <div class="card shadow-sm p-4 w-100" style="max-width:700px; border-radius:18px; padding-bottom:48px;">
+        <h2 class="mb-4 text-center">주문하기</h2>
+        <form id="orderConfirmForm">
+            <div class="mb-3">
+                <label class="form-label">주문자 이름</label>
+                <input type="text" class="form-control" th:value="${member.name}" id="orderName" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">이메일</label>
+                <input type="email" class="form-control" th:value="${member.email}" id="orderEmail" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">연락처</label>
+                <input type="text" class="form-control" th:value="${member.phone}" id="orderPhone" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">배송지 주소</label>
+                <input type="text" class="form-control" th:value="${member.address}" id="orderAddress" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">배송 요청사항</label>
+                <input type="text" class="form-control" id="orderMemo" placeholder="요청사항을 입력하세요">
+            </div>
+
+            <div class="mb-4 p-3 border rounded bg-light">
+                <h5>주문 상품 정보</h5>
+                <!--                <div style="color:red; font-size:14px;">-->
+                <!--                    cartItemsJson: [[${cartItemsJson}]]-->
+                <!--                </div>-->
+
+                <div th:if="${multiOrder}">
+                    <div th:each="cartItem : ${cartItems}" class="d-flex align-items-center mb-3 p-3 border rounded">
+                        <img th:src="${cartItem.imgUrl}" alt="상품 이미지" 
+                             style="width:80px; height:80px; object-fit:cover; border-radius:8px; margin-right:16px;">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold" th:text="${cartItem.itemNm}"></div>
+                            <!-- ✅ 사이즈 정보 표시 -->
+                            <div th:if="${cartItem.size != null}" class="text-muted">
+                                사이즈: <span th:text="${cartItem.size}"></span>mm
+                            </div>
+                            <div class="text-muted">수량: <span th:text="${cartItem.count}"></span>개</div>
+                            <div class="text-muted">가격: <span th:text="${#numbers.formatInteger(cartItem.price, 3, 'COMMA')}"></span>원</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold" th:text="${#numbers.formatInteger(cartItem.price * cartItem.count, 3, 'COMMA')} + '원'"></div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-end border-top pt-3">
+                        <h5>총 결제 금액: <span class="totalPrice">0</span>원</h5>
+                        <span class="totalOriginPrice" style="display:none;"></span>
+                    </div>
+                </div>
+
+                <div th:if="${!multiOrder}">
+                    <div class="d-flex align-items-center">
+                        <img th:if="${item != null and item.itemImgDtoList != null and !#lists.isEmpty(item.itemImgDtoList)}"
+                             th:src="${item != null ? item.itemImgDtoList[0].imgUrl : ''}" alt="상품 이미지"
+                             style="width:80px; height:80px; object-fit:cover; border-radius:8px; margin-right:16px;">
+                        <div>
+                            <div th:if="${item != null}"><b th:text="${item.itemNm}"></b></div>
+                            <div th:if="${item != null and size != null}">사이즈: <span th:text="${size}"></span>mm</div>
+                            <div th:if="${item != null}">수량: <span th:text="${count}"></span></div>
+                            <div th:if="${item != null}">가격: <span th:text="${item.price}"></span>원</div>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-end">
+                        <b th:if="${item != null}">총 결제 금액: <span class="totalPrice" th:text="${item.price * count}"></span>원</b>
+                        <span th:if="${item != null}" class="totalOriginPrice" th:text="${item.price * count}" style="display:none;"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">포인트(캐시) 사용</label>
+                <input type="number" class="form-control" id="useCash" min="0"
+                       th:placeholder="'보유: ' + ${member.cash} + '원'" th:attr="max=${member.cash}">
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="button" class="btn btn-primary btn-lg px-5" id="payBtn">결제하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<th:block layout:fragment="script">
+    <script src="https://cdn.iamport.kr/js/iamport.payment-1.2.0.js"></script>
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function () {
+            const IMP = window.IMP;
+            IMP.init("imp40724814");
+
+            const csrfToken = $("meta[name='_csrf']").attr("content");
+            const csrfHeader = $("meta[name='_csrf_header']").attr("content");
+
+            const multiOrder = /*[[${multiOrder}]]*/ true;
+
+            // ✅ cartItemsJson 이중 파싱 처리
+            let cartItems = [];
+            try {
+                const cartItemsRaw = /*[[${cartItemsJson}]]*/ "";
+                if (cartItemsRaw) {
+                    cartItems = JSON.parse(cartItemsRaw);
+                    if (typeof cartItems[0] === "string") {
+                        cartItems = cartItems.map(item => JSON.parse(item));
+                    }
+                }
+            } catch (e) {
+                console.error("cartItems 파싱 에러:", e);
+            }
+
+            function calcTotalPrice() {
+                let total = 0;
+                if (multiOrder) {
+                    cartItems.forEach(item => {
+                        const price = parseInt(item.price, 10) || 0;
+                        const count = parseInt(item.count, 10) || 0;
+                        total += price * count;
+                    });
+                } else {
+                    total = parseInt(document.querySelector('.totalOriginPrice').innerText) || 0;
+                }
+                return total;
+            }
+
+            function updateTotalPrice() {
+                const price = calcTotalPrice();
+                const useCash = Number(document.getElementById('useCash').value) || 0;
+                const maxCash = Number(document.getElementById('useCash').getAttribute('max')) || 0;
+                const validCash = Math.max(0, Math.min(useCash, price, maxCash));
+                document.getElementById('useCash').value = isNaN(validCash) ? 0 : validCash;
+                document.querySelectorAll('.totalPrice').forEach(el => {
+                    el.innerText = isNaN(price - validCash) ? 0 : (price - validCash);
+                });
+                document.querySelectorAll('.totalOriginPrice').forEach(el => {
+                    el.innerText = price;
+                });
+            }
+
+            document.getElementById('useCash').addEventListener('input', updateTotalPrice);
+            updateTotalPrice();
+
+            document.getElementById('payBtn').onclick = function () {
+                const totalPrice = parseInt(document.querySelector('.totalPrice').innerText);
+                const useCash = parseInt(document.getElementById('useCash').value) || 0;
+                const orderName = document.getElementById('orderName').value;
+                const orderEmail = document.getElementById('orderEmail').value;
+                const orderPhone = document.getElementById('orderPhone').value;
+                const orderAddress = document.getElementById('orderAddress').value;
+                const orderMemo = document.getElementById('orderMemo').value;
+
+                let orderDataList = [];
+                if (multiOrder) {
+                    cartItems.forEach(item => {
+                        orderDataList.push({
+                            cartItemId: item.cartItemId,
+                            itemId: item.itemId,
+                            count: item.count,
+                            price: item.price,
+                            itemNm: item.itemNm, // 상품명 반드시 포함
+                            size: item.size // 사이즈 정보 포함
+                        });
+                    });
+                } else {
+                    orderDataList.push({
+                        itemId: /*[[${item != null ? item.id : 0}]]*/,
+                        count: /*[[${count}]]*/ 1,
+                        price: /*[[${item != null ? item.price : 0}]]*/,
+                        size: /*[[${size}]]*/ null,
+                        itemNm: '/*[[${item != null ? item.itemNm : "상품명"}]]*/' // 단일 상품명 안전 치환
+                    });
+                }
+                // ★★★ 이 아래에 추가 ★★★
+                console.log("orderDataList", orderDataList);
+                if (totalPrice <= 0) {
+                    $.ajax({
+                        url: "/order",
+                        type: "POST",
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            orderList: orderDataList,
+                            impUid: null,
+                            amount: 0,
+                            merchantUid: null,
+                            payMethod: "POINT",
+                            orderName, orderEmail, orderPhone, orderAddress, orderMemo, useCash
+                        }),
+                        beforeSend: xhr => xhr.setRequestHeader(csrfHeader, csrfToken),
+                        success: () => {
+                            alert("포인트로 주문이 완료되었습니다.");
+                            window.location.href = "/orders";
+                        },
+                        error: xhr => alert("주문 실패: " + xhr.responseText)
+                    });
+                    return;
+                }
+
+                IMP.request_pay({
+                    pg: "html5_inicis",
+                    pay_method: "card",
+                    name: orderDataList.length > 1 ? "장바구니 상품 결제" : orderDataList[0].itemNm,
+                    amount: totalPrice,
+                    buyer_email: orderEmail,
+                    buyer_name: orderName,
+                    buyer_tel: orderPhone,
+                    buyer_addr: orderAddress,
+                    buyer_postcode: ""
+                }, function (rsp) {
+                    if (rsp.success) {
+                        $.ajax({
+                            url: "/order",
+                            type: "POST",
+                            contentType: "application/json",
+                            data: JSON.stringify({
+                                orderList: orderDataList,
+                                impUid: rsp.imp_uid,
+                                amount: rsp.paid_amount,
+                                merchantUid: rsp.merchant_uid,
+                                payMethod: rsp.pay_method,
+                                orderName, orderEmail, orderPhone, orderAddress, orderMemo, useCash
+                            }),
+                            beforeSend: xhr => xhr.setRequestHeader(csrfHeader, csrfToken),
+                            success: () => {
+                                alert("결제 성공! 주문 완료");
+                                window.location.href = "/orders";
+                            },
+                            error: xhr => alert("주문 실패: " + xhr.responseText)
+                        });
+                    } else {
+                        alert("결제 실패: " + rsp.error_msg);
+                    }
+                });
+            };
+        });
+    </script>
+</th:block>
+</body>
+</html>

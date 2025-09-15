@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.w3.org/1999/xhtml"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <title>Calendar</title>
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+</head>
+
+<!-- ✅ FullCalendar CSS -->
+<th:block layout:fragment="css">
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css' rel='stylesheet' />
+    <style>
+        body, .fc {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #f6f8fc;
+            color: #222;
+        }
+
+        .fc .fc-col-header-cell-cushion {
+            font-weight: 700;
+            font-size: 1.1rem;
+            padding: 8px 0;
+        }
+        .fc .fc-col-header-cell:nth-child(1) .fc-col-header-cell-cushion { color: #e74c3c; } /* 일 */
+        .fc .fc-col-header-cell:nth-child(2) .fc-col-header-cell-cushion,
+        .fc .fc-col-header-cell:nth-child(3) .fc-col-header-cell-cushion,
+        .fc .fc-col-header-cell:nth-child(4) .fc-col-header-cell-cushion,
+        .fc .fc-col-header-cell:nth-child(5) .fc-col-header-cell-cushion,
+        .fc .fc-col-header-cell:nth-child(6) .fc-col-header-cell-cushion { color: #222; }
+        .fc .fc-col-header-cell:nth-child(7) .fc-col-header-cell-cushion { color: #3498db; } /* 토 */
+
+        .fc .fc-daygrid-day-number {
+            display: block;
+            width: 100%;
+            text-align: center;
+            font-size: 1.05rem;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number { color: #e74c3c !important; }
+        .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #3498db !important; }
+        .fc-daygrid-day.fc-day-mon .fc-daygrid-day-number,
+        .fc-daygrid-day.fc-day-tue .fc-daygrid-day-number,
+        .fc-daygrid-day.fc-day-wed .fc-daygrid-day-number,
+        .fc-daygrid-day.fc-day-thu .fc-daygrid-day-number,
+        .fc-daygrid-day.fc-day-fri .fc-daygrid-day-number {
+            color: #222 !important;
+        }
+
+        .fc-day-other .fc-daygrid-day-number { color: #b0b8c1 !important; } /* 이전/다음달 */
+
+        .fc .fc-toolbar-title {
+            color: #222;
+            font-weight: 800;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .fc-button, .fc-button-primary {
+            background: #3b5998 !important;
+            color: #fff !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 6px 18px;
+            margin: 0 2px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: background 0.2s;
+        }
+        .fc-button:hover, .fc-button-primary:hover {
+            background: #2d4373 !important;
+        }
+
+        .fc .fc-day-today {
+            background: none !important;
+        }
+        .fc .fc-day-today .fc-daygrid-day-number {
+            background: #3b5998;
+            color: #fff !important;
+            border-radius: 12px;
+            padding: 2px 0;
+            width: 32px;
+            margin: 0 auto;
+            font-weight: 700;
+        }
+
+        /* ✅ 테두리 제거 */
+        .fc-scrollgrid,
+        .fc-theme-standard td,
+        .fc-theme-standard th,
+        .fc .fc-scrollgrid-section-header > th {
+            border: none !important;
+        }
+
+        .fc-daygrid-day-frame {
+            border: none !important;
+        }
+
+        .fc-toolbar-title {
+            color: #ff6b00;
+            font-weight: 800;
+            font-size: 2rem;
+        }
+
+        .fc-button {
+            background-color: #222 !important;
+            color: white !important;
+            border: none;
+        }
+
+        .fc-button:hover {
+            background-color: #333 !important;
+        }
+
+        .modal-content {
+            background-color: #222;
+            color: white;
+        }
+
+        label {
+            margin-top: 0.5rem;
+        }
+        /* ✅ 조던 신발 이미지 우측하단 배치 (필요시만 사용) */
+        /*
+        .calendar-sneaker {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            opacity: 0.9;
+            pointer-events: none;
+        }
+        */
+    </style>
+</th:block>
+
+<!-- ✅ 캘린더 + 모달 -->
+<div layout:fragment="content">
+    <div class="container mt-5 position-relative">
+        <div id="calendar"></div>
+
+        <!-- ✅ 신발 이미지 삽입 -->
+<!--        <img class="shoe-background" src="/img/jordan1.jpg" alt="Jordan Shoe" />-->
+    </div>
+
+    <!-- ✅ 모달 -->
+    <div class="modal fade" id="eventModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">일정 관리</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">×</button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="eventId">
+                    <label>제목</label>
+                    <input type="text" id="eventTitle" class="form-control">
+                    <label>시작 날짜</label>
+                    <input type="date" id="eventStartDate" class="form-control mt-2">
+                    <label>종료 날짜</label>
+                    <input type="date" id="eventEndDate" class="form-control mt-2">
+                </div>
+                <div class="modal-footer">
+                    <button id="saveEventBtn" class="btn btn-primary"
+                            th:if="${#authorization.expression('hasRole(''ADMIN'')')}">저장</button>
+                    <button id="deleteEventBtn" class="btn btn-danger"
+                            th:if="${#authorization.expression('hasRole(''ADMIN'')')}">삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ FullCalendar JS -->
+<th:block layout:fragment="script">
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+    <script th:inline="javascript">
+        const isAdmin = [[${#authorization.expression('hasRole("ADMIN")')}]];
+
+
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'en',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                selectable: true,
+                selectMirror: true,
+
+                dayCellContent: function(arg) {
+                    return { html: arg.dayNumberText.replace('일', '') };
+                },
+
+                dateClick: function(info) {
+                    if (!isAdmin) return;
+                    $('#eventModal').modal('show');
+                    $('#eventStartDate').val(info.dateStr);
+                    $('#eventEndDate').val(info.dateStr);
+                    $('#eventId').val('');
+                    $('#eventTitle').val('');
+                    $('#deleteEventBtn').hide();
+                },
+
+                eventClick: function(info) {
+                    console.log("이벤트아이디:"+info.event.id);
+                    $('#eventModal').modal('show');
+                    $('#eventStartDate').val(info.event.startStr.split('T')[0]);
+                    $('#eventEndDate').val(info.event.endStr ? info.event.endStr.split('T')[0] : info.event.startStr.split('T')[0]);
+                    $('#eventId').val(info.event.id);
+                    $('#eventTitle').val(info.event.title);
+                    $('#deleteEventBtn').show();
+                },
+
+                events: '/calendar/events'
+            }); // FullCalendar 생성 끝
+
+            console.log("캘린더:"+calendar);
+
+            calendar.render();
+
+            $('#saveEventBtn').on('click', function () {
+                var token = $("meta[name='_csrf']").attr("content");
+                var header = $("meta[name='_csrf_header']").attr("content");
+
+                const eventData = {
+                    id: $('#eventId').val(),
+                    title: $('#eventTitle').val(),
+                    start: $('#eventStartDate').val(),
+                    end: $('#eventEndDate').val()
+                };
+                console.log("제목:"+eventData.title);
+                console.log("아이디:"+eventData.id);
+
+
+                const url = eventData.id ? '/calendar/update' : '/calendar/add';
+
+                console.log("url:"+url);
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    beforeSend : function(xhr){
+                        /*데이터 전송하기 전에 헤더이 csrf 값을 설정*/
+                        xhr.setRequestHeader(header, token);
+                    },
+                    contentType: 'application/json',
+                    data: JSON.stringify(eventData),
+                    success: function () {
+                        $('#eventModal').modal('hide');
+                        calendar.refetchEvents();
+                    },
+                    error : function(jqXHR, status, error){
+                         alert(jqXHR.responseText);
+                    }
+
+                });
+            });
+
+            $('#deleteEventBtn').on('click', function () {
+                const id = $('#eventId').val();
+                $.ajax({
+                    url: '/calendar/delete/' + id,
+                    type: 'DELETE',
+                    success: function () {
+                        $('#eventModal').modal('hide');
+                        calendar.refetchEvents();
+                    }
+                });
+            });
+        });
+    </script>
+</th:block>
+</html>

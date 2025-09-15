@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <meta charset="UTF-8">
+    <title>상품리스트</title>
+    <link th:href="@{/css/itemMng.css}" rel="stylesheet">
+</head>
+
+
+<!-- 사용자 스크립트 추가 -->
+<th:block layout:fragment="script">
+    <script th:inline="javascript">
+        $(document).ready(function(){
+           //loadItems();
+           $("searchBtn").on("click",function(e){
+               e.preventDefault(); //검색버튼 클릭시 form 태그 전송을 막습니다.
+               //page(0);
+           });
+        });
+
+
+    </script>
+</th:block>
+
+<!--사용자 CSS 추가-->
+<th:block layout:fragment="css">
+    <style>
+    </style>
+</th:block>
+
+<div layout:fragment="content">
+    <div class="product-form">
+<!--        <div class="tab-group" id="dateTabs">-->
+<!--            <span class="tab-option active" data-value="all">전체기간</span>-->
+<!--            <span class="tab-option" data-value="1d">1일</span>-->
+<!--            <span class="tab-option" data-value="1w">1주</span>-->
+<!--            <span class="tab-option" data-value="1m">1개월</span>-->
+<!--            <span class="tab-option" data-value="6m">6개월</span>-->
+<!--            <input type="hidden" id="searchDateType" name="searchDateType" value="all" />-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; ✅ 판매상태 &ndash;&gt;-->
+<!--        <div class="tab-group" id="sellStatusTabs">-->
+<!--            <span class="tab-option active" data-value="">전체</span>-->
+<!--            <span class="tab-option" data-value="SELL">판매</span>-->
+<!--            <span class="tab-option" data-value="SOLD_OUT">품절</span>-->
+<!--            <input type="hidden" id="searchSellStatus" name="searchSellStatus" value="" />-->
+<!--        </div>-->
+
+<!--        &lt;!&ndash; ✅ 검색기준 &ndash;&gt;-->
+<!--        <div class="tab-group" id="searchByTabs">-->
+<!--            <span class="tab-option active" data-value="itemNm">상품명</span>-->
+<!--            <span class="tab-option" data-value="createdBy">등록자</span>-->
+<!--            <input type="hidden" id="searchBy" name="searchBy" value="itemNm" />-->
+<!--        </div>-->
+
+        <h3>상품리스트</h3>
+        <!-- ✅ 검색어 -->
+<!--        <input type="text" id="searchQuery" name="searchQuery" placeholder="검색어를 입력해주세요" class="search-input" />-->
+
+        <!-- ✅ 버튼 -->
+<!--        <button id="searchBtn" type="submit" class="search-btn">검색</button>-->
+
+        <!-- ✅ 페이징 영역 -->
+<!--        <div class="pagination-wrapper" th:with="start=${(items.number/maxPage)*maxPage + 1},-->
+<!--            end=(${(items.totalPages == 0 ) ? 1 : (start + (maxPage-1) < items.totalPages ? start + (maxPage - 1) : items.totalPages)})">-->
+<!--            <ul class="pagination justify-content-center">-->
+<!--                <li class="page-item" th:classappend="${items.first}?'disabled'">-->
+<!--                    <a th:onclick="'javascript:page('+${items.number -1} + ')'" class="page-link">Previous</a>-->
+<!--                </li>-->
+<!--                <li class="page-item" th:each="page: ${#numbers.sequence(start,end)}"-->
+<!--                    th:classappend="${items.number eq page-1}?'active':''">-->
+<!--                    <a th:onclick="'javascript:page('+${page-1}+')'" th:inline="text" class="page-link">[[${page}]]</a>-->
+<!--                </li>-->
+<!--                <li class="page-item" th:classappend="${items.last}?'disabled'">-->
+<!--                    <a th:onclick="'javascript:page('+${items.number+1}+')'" class="page-link">Next</a>-->
+<!--                </li>-->
+<!--            </ul>-->
+<!--        </div>-->
+
+        <!-- ✅ 상품 카드 리스트 -->
+        <div class="product-grid" id="productGrid">
+<!--            <div class="product-card" th:each="item : ${items.getContent()}">-->
+<!--                <a th:href="'/admin/item/'+${item.id}">-->
+<!--                    <img th:src="${item.repImgUrl}" alt="상품 이미지" class="product-img" />-->
+<!--                </a>-->
+<!--                <div class="product-info">-->
+<!--                    <h3 class="product-title" th:text="${item.itemNm}"></h3>-->
+<!--                    <p class="product-price" th:text="${item.price} + '원'"></p>-->
+<!--                </div> &lt;!&ndash;//.product-info &ndash;&gt;-->
+<!--                <div class="product-action">-->
+<!--                    <button type="button" class="auction-btn" th:attr="data-item-id=${item.id}">경매하기</button>-->
+<!--                </div> &lt;!&ndash;//.product-action &ndash;&gt;-->
+<!--            </div> &lt;!&ndash;//.product-card &ndash;&gt;-->
+        </div> <!--//.product-grid -->
+        <div id="sentinel" style="height: 1px;"></div>
+        <script src="/js/itemMng.js"></script>
+
+
+
+
+        <!-- modal html -->
+        <div id="auctionModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeAuctionModal()">&times;</span>
+                <form th:action="@{/admin/auction/new}" method="post">
+                    <input type="hidden" id="itemId" name="itemId" />
+
+<!--                    <label for="auctionTitle">상품명</label>-->
+<!--                    <input type="text" id="auctionTitle" name="title" required value=""/>-->
+                    <!-- option 입력할것인지?-->
+                    <label for="startPrice">시작가</label>
+                    <input type="number" id="startPrice" name="startPrice" step="1000" required />
+                    <label for="startTime">시작일시</label>
+                    <input type="datetime-local" id="startTime" name="startTime" required />
+                    <label for="endTime">마감일시</label>
+                    <input type="datetime-local" id="endTime" name="endTime" required />
+                    <button type="submit">등록</button>
+                </form>
+            </div>
+        </div><!--//#auctionModal-->
+
+        <div id="sellModal" class="modal">
+            <div class="modal-content">
+                <span class="modal-close" onclick="closeAuctionModal()">&times;</span>
+                <form th:action="@{/admin/sell/new}" method="post">
+                    <input type="hidden" id="dataItemId" name="dataItemId" />
+                    <label for="price">가격</label>
+                    <input type="number" id="price" name="price" step="1000" required />
+                    <label for="color">색상(선택)</label>
+                    <input type="text" id="color" name="color" />
+                    
+                    <!-- 사이즈별 재고 입력 -->
+                    <label>사이즈별 재고</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 10px; margin: 10px 0;">
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">220mm</label>
+                            <input type="number" name="sizeStock[220]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">225mm</label>
+                            <input type="number" name="sizeStock[225]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">230mm</label>
+                            <input type="number" name="sizeStock[230]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">235mm</label>
+                            <input type="number" name="sizeStock[235]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">240mm</label>
+                            <input type="number" name="sizeStock[240]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">245mm</label>
+                            <input type="number" name="sizeStock[245]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">250mm</label>
+                            <input type="number" name="sizeStock[250]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">255mm</label>
+                            <input type="number" name="sizeStock[255]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">260mm</label>
+                            <input type="number" name="sizeStock[260]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">265mm</label>
+                            <input type="number" name="sizeStock[265]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">270mm</label>
+                            <input type="number" name="sizeStock[270]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">275mm</label>
+                            <input type="number" name="sizeStock[275]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                        <div style="text-align: center;">
+                            <label style="display: block; font-weight: bold; margin-bottom: 5px;">280mm</label>
+                            <input type="number" name="sizeStock[280]" min="0" placeholder="0" style="width: 60px; text-align: center;">
+                        </div>
+                    </div>
+                    
+                    <button type="submit">등록</button>
+                </form>
+            </div>
+        </div><!--//#sellModal-->
+
+    </div>
+
+
+</div>
+</html>

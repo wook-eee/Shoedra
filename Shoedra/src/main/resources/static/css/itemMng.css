@@ -1,0 +1,282 @@
+.product-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
+  margin: 2rem auto;
+  max-width: 1200px;
+  padding: 0 1rem;
+}
+
+
+
+.tab-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tab-option {
+  position: relative;
+  padding-bottom: 4px;
+  cursor: pointer;
+  color: #888;
+  transition: color 0.2s;
+}
+
+.tab-option.active {
+  color: #111;
+  font-weight: 700;
+}
+
+.tab-option.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  background-color: #222;
+}
+
+/* ✅ 검색창 */
+.search-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 1rem;
+}
+
+.search-btn {
+  padding: 0.5rem 1rem;
+  background-color: #3182f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.search-btn:hover {
+  background-color: #1e5ed9;
+}
+
+.pagination-wrapper {
+    display: flex;
+      justify-content: center;
+      width: 100%;
+}
+.pagination {
+  margin: 0;
+}
+
+.page-item .page-link {
+      color: #333;
+      border: 1px solid #ddd;
+      margin: 0 3px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+}
+.page-item .page-link:hover {
+  background-color: #f1f1f1;
+}
+.page-item.active .page-link {
+  background-color: #3182f6;
+  color: white;
+  border-color: #3182f6;
+}
+
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr); /* 5개 고정 */
+  gap: 24px;
+  width: 100%;
+}
+
+.product-card {
+  min-height: 370px;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: white;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  padding: 1rem;
+}
+
+.product-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.product-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  margin-bottom: 0.5rem;
+}
+
+.product-info {
+  text-align: center;
+  margin-bottom: 1rem;
+  flex-grow: 1;
+}
+
+.product-title {
+  font-size: 1rem;
+  color: #222;
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+
+.product-price {
+  color: #e74c3c;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.auction-badge {
+  background-color: #ff5722;
+  color: white;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.product-action {
+  text-align: center;
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.auction-btn {
+  background-color: #3182f6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.auction-btn:hover {
+  background-color: #1e5ed9;
+}
+
+.sell-btn {
+  background-color: #28a745;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.sell-btn:hover {
+  background-color: #218838;
+}
+
+
+/* Modal */
+/* 전체 모달 배경 */
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* 모달 내부 박스 */
+.modal-content {
+  background: #fff;
+  padding: 2rem 2.5rem;
+  border-radius: 12px;
+  width: 400px;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+/* 닫기 버튼 (X) */
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #888;
+}
+
+/* label 스타일 */
+.modal-content label {
+  display: block;
+  margin-top: 1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+/* input 스타일 */
+.modal-content input[type="number"],
+.modal-content input[type="datetime-local"] {
+  width: 100%;
+  padding: 10px;
+  margin-top: 0.3rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+/* 등록 버튼 */
+.modal-content button[type="submit"] {
+  margin-top: 1.5rem;
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #2c3e50, #4ca1af);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.modal-content button[type="submit"]:hover {
+  background: linear-gradient(135deg, #34495e, #5dade2);
+}
+
+/* ===== 간단한 페이드 인 애니메이션 ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    max-width: 90%;
+    padding: 1.5rem 1rem;
+  }
+}

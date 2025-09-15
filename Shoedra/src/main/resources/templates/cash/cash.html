@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.w3.org/1999/xhtml"
+      layout:decorate="~{layouts/layout1}">
+<head>
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
+</head>
+
+<!-- ✅ CSS -->
+<th:block layout:fragment="css">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f9f9f9;
+        }
+
+        .cash-container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            width: 600px;
+            margin: 50px auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        th, td {
+            padding: 15px;
+            border: 1px solid #ddd;
+        }
+
+        input[type="number"] {
+            width: 100px;
+            padding: 8px;
+        }
+
+        button {
+            padding: 8px 16px;
+            background-color: #20c997;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #17a589;
+        }
+
+        .btn-secondary {
+            background-color: #555;
+        }
+
+        .btn-secondary:hover {
+            background-color: #333;
+        }
+    </style>
+</th:block>
+
+<!-- ✅ 컨텐츠 -->
+<div layout:fragment="content">
+    <div class="cash-container">
+        <h2>💳 캐시 충전 페이지</h2>
+        <table>
+            <tr>
+                <th colspan="2">캐시 잔액 조회</th>
+            </tr>
+            <tr>
+                <td>현재 캐시 잔액</td>
+                <td th:text="${cash} + ' 원'">0 원</td>
+            </tr>
+            <tr>
+                <td>캐시 충전하기</td>
+                <td>
+                    <input type="number" id="chargeAmount" placeholder="금액 입력" />
+                    <button onclick="requestPay()">캐시 충전</button>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <a href="/cash/history"><button class="btn-secondary">충전 내역</button></a>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- ✅ JavaScript -->
+<th:block layout:fragment="script">
+    <script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const token = $("meta[name='_csrf']").attr("content");
+            const header = $("meta[name='_csrf_header']").attr("content");
+
+            const imp = window.IMP;
+            imp.init("imp40724814"); // 본인 식별코드로 수정
+
+            window.requestPay = function () {
+                const amount = parseInt(document.getElementById("chargeAmount").value);
+                if (!amount || amount <= 0) {
+                    alert("올바른 충전 금액을 입력하세요.");
+                    return;
+                }
+
+                const orderUid = 'order_' + new Date().getTime();
+                <!--   .INIpayTest  -->
+                imp.request_pay({
+                    pg: 'html5_inicis',
+                    pay_method: 'card',
+                    merchant_uid: orderUid,
+                    name: "캐시 충전",
+                    amount: amount
+                }, function (rsp) {
+                    if (rsp.success) {
+                        $.ajax({
+                            url: "/cash/cash/charge",
+                            method: "POST",
+                            beforeSend : function(xhr){
+                                xhr.setRequestHeader(header, token);
+                            },
+                            contentType: "application/json",
+                            data: JSON.stringify({
+                                impUid: rsp.imp_uid,
+                                amount: amount,
+                                method:rsp.pay_method, // ✅ 이 부분 중요 (결제수단) rsp.pay_method
+                                merchantUid: rsp.merchant_uid
+                            }),
+                            beforeSend: function(xhr) {
+                                const csrfToken = document.querySelector('meta[name="_csrf"]').getAttribute('content');
+                                const csrfHeader = document.querySelector('meta[name="_csrf_header"]').getAttribute('content');
+                                xhr.setRequestHeader(csrfHeader, csrfToken);
+                            },
+                            success: function () {
+                                alert("캐시 충전 성공!");
+                                location.reload();
+                            },
+                            error: function (xhr) {
+                                alert("서버 오류: " + xhr.responseText);
+                            }
+                        });
+                    } else {
+                        alert("결제가 취소되었습니다.");
+                    }
+                });
+            };
+        });
+    </script>
+</th:block>
+</html>
